@@ -13,11 +13,11 @@
   const DONE_PREFIX = '【記録完了】';
 
   const PHOTO_INFO = {
-    '集合写真': { title: '作業前の集合写真', hint: '活動を始める前の集合写真を撮るか、アルバムから選んでください（3枚まで）。' },
-    '写真(中)': { title: '作業中の写真', hint: '作業している様子の写真を撮るか、選んでください（3枚まで）。' },
-    '写真(後)': { title: '完了時の写真', hint: '作業が終わったあとの写真を撮るか、選んでください（3枚まで）。' },
-    '領収書写真': { title: '領収書の写真', hint: '領収書の写真を撮るか、選んでください（3枚まで）。' },
-    '商品写真': { title: '購入した商品の写真', hint: '購入した商品の写真を撮るか、選んでください（3枚まで）。' }
+    '集合写真': { title: '作業前の集合写真', hint: '活動を始める前の集合写真です。3枚まで送れます。' },
+    '写真(中)': { title: '作業中の写真', hint: '作業している様子の写真です。3枚まで送れます。' },
+    '写真(後)': { title: '完了時の写真', hint: '作業が終わったあとの写真です。3枚まで送れます。' },
+    '領収書写真': { title: '領収書の写真', hint: '領収書の写真です。3枚まで送れます。' },
+    '商品写真': { title: '購入した商品の写真', hint: '購入した商品の写真です。3枚まで送れます。' }
   };
 
   const STEPS = {
@@ -197,12 +197,23 @@
       },
       render(body) {
         const list = S.a.photos[key];
-        const input = h('input', {
-          type: 'file', accept: 'image/*', multiple: true, hidden: true,
-          onchange: e => { addPhotos(key, [...e.target.files]); e.target.value = ''; }
-        });
+        const onPick = e => { addPhotos(key, [...e.target.files]); e.target.value = ''; };
+        // カメラ：capture を付けるとカメラが直接起動する
+        const cameraInput = h('input', { type: 'file', accept: 'image/*', capture: 'environment', hidden: true, onchange: onPick });
+        // アルバム：写真だけを選べるようにする
+        const albumInput = h('input', { type: 'file', accept: 'image/*', multiple: true, hidden: true, onchange: onPick });
+        const buttons = h('div', { class: 'photo-buttons' });
         const grid = h('div', { class: 'photo-grid' });
         const draw = () => {
+          const full = list.length >= PHOTO_MAX;
+          buttons.replaceChildren(...(full
+            ? [h('div', { class: 'photo-full' }, `写真は${PHOTO_MAX}枚までです。変えるときは × で消してください。`)]
+            : [
+              h('button', { class: 'photo-btn', onclick: () => cameraInput.click() },
+                h('span', { class: 'photo-btn-icon' }, '📷'), h('span', {}, 'カメラで撮る')),
+              h('button', { class: 'photo-btn sub', onclick: () => albumInput.click() },
+                h('span', { class: 'photo-btn-icon' }, '🖼️'), h('span', {}, 'アルバムから選ぶ'))
+            ]));
           grid.replaceChildren();
           list.forEach((p, i) => {
             grid.append(h('div', { class: 'photo' },
@@ -215,14 +226,11 @@
               }, '×') : null
             ));
           });
-          if (list.length < PHOTO_MAX) {
-            grid.append(h('button', { class: 'photo-add', onclick: () => input.click() },
-              h('span', { class: 'plus' }, '＋'), '撮影・選択'));
-          }
+          grid.style.display = list.length ? '' : 'none';
         };
         S.redrawPhotos = draw;
         draw();
-        body.append(h('p', { class: 'hint' }, info.hint), grid, input);
+        body.append(h('p', { class: 'hint' }, info.hint), buttons, grid, cameraInput, albumInput);
       }
     };
   }
@@ -283,26 +291,66 @@
             S.a.end = toLocalInput(new Date(new Date(S.a.start).getTime() + 3600000));
           }
         }
+        // 大きなボタンだけで日付と時刻を変えられるようにする（高齢の方でもわかるように）
+        const W = '日月火水木金土';
+        const cur = () => new Date(S.a[field]);
+        const set = d => { S.a[field] = toLocalInput(d); upd(); };
+        const shift = (ms) => set(new Date(cur().getTime() + ms));
+
+        const dateText = h('div', { class: 'dt-date' });
+        const hourText = h('div', { class: 'dt-num' });
+        const minText = h('div', { class: 'dt-num' });
         const info = h('div', { class: 'info' });
-        const updInfo = () => {
-          if (field !== 'end') { info.textContent = fmtDT(S.a[field]); info.className = 'info'; return; }
-          const d = duration(S.a.start, S.a.end);
-          info.textContent = d ? `作業時間：${d}` : '終了日時を開始日時より後にしてください';
-          info.className = d ? 'info' : 'info warn';
+        const todayBtn = h('button', { class: 'dt-day-btn today' }, '今日');
+
+        const upd = () => {
+          const d = cur();
+          const today = new Date(); today.setHours(0, 0, 0, 0);
+          const that = new Date(d); that.setHours(0, 0, 0, 0);
+          const diff = Math.round((that - today) / 86400000);
+          const rel = diff === 0 ? '（今日）' : diff === -1 ? '（昨日）' : diff === 1 ? '（明日）' : '';
+          dateText.textContent = `${d.getMonth() + 1}月${d.getDate()}日（${W[d.getDay()]}）${rel}`;
+          hourText.textContent = `${d.getHours()}`;
+          minText.textContent = pad(d.getMinutes());
+          todayBtn.disabled = diff === 0;
+          if (field === 'end') {
+            const du = duration(S.a.start, S.a.end);
+            info.textContent = du ? `作業時間：${du}` : '終了は開始より後の時刻にしてください';
+            info.className = du ? 'info' : 'info warn';
+          } else {
+            info.style.display = 'none';
+          }
         };
-        const input = h('input', {
-          type: 'datetime-local', class: 'dt', value: S.a[field],
-          oninput: e => { S.a[field] = e.target.value; updInfo(); }
-        });
-        const setNow = () => { S.a[field] = nowRounded(); input.value = S.a[field]; updInfo(); };
+
+        // 時・分は日付をまたがずに回す
+        const addHour = n => { const d = cur(); d.setHours((d.getHours() + n + 24) % 24); set(d); };
+        const addMin = n => { const d = cur(); d.setMinutes((Math.round(d.getMinutes() / 5) * 5 + n + 60) % 60); set(d); };
+        todayBtn.onclick = () => { const d = cur(); const t = new Date(); d.setFullYear(t.getFullYear(), t.getMonth(), t.getDate()); set(d); };
+
+        const stepper = (label, textEl, minus, plus) => h('div', { class: 'dt-stepper' },
+          h('button', { class: 'dt-step-btn', 'aria-label': label + 'を減らす', onclick: minus }, '−'),
+          h('div', { class: 'dt-val' }, textEl, h('div', { class: 'dt-unit' }, label)),
+          h('button', { class: 'dt-step-btn', 'aria-label': label + 'を増やす', onclick: plus }, '＋'));
+
         body.append(
           h('p', { class: 'hint' }, hint),
-          h('div', { class: 'dt-wrap' },
-            input,
-            h('div', { class: 'dt-quick' }, h('button', { class: 'chip-btn', onclick: setNow }, '今の時刻にする')),
-            info)
+          h('div', { class: 'dt-card' },
+            h('div', { class: 'dt-label' }, '日にち'),
+            dateText,
+            h('div', { class: 'dt-days' },
+              h('button', { class: 'dt-day-btn', onclick: () => shift(-86400000) }, '◀ 前の日'),
+              todayBtn,
+              h('button', { class: 'dt-day-btn', onclick: () => shift(86400000) }, '次の日 ▶'))),
+          h('div', { class: 'dt-card' },
+            h('div', { class: 'dt-label' }, '時刻（＋とーで変えられます）'),
+            h('div', { class: 'dt-time' },
+              stepper('時', hourText, () => addHour(-1), () => addHour(1)),
+              h('div', { class: 'dt-colon' }, ':'),
+              stepper('分', minText, () => addMin(-5), () => addMin(5))),
+            h('button', { class: 'dt-now', onclick: () => { S.a[field] = nowRounded(); upd(); } }, '🕒 今の時刻にする')),
+          info
         );
-        updInfo();
+        upd();
       }
     };
   }
