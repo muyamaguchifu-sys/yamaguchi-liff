@@ -135,6 +135,12 @@ input, textarea { font: inherit; }
 .photo-btn.sub { background: #fff; color: var(--text); border: 2px solid var(--line); }
 .photo-btn:active { transform: scale(.98); }
 .photo-btn-icon { font-size: 2rem; line-height: 1; }
+.photo-ios-hint {
+  display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 12px;
+  background: #fff8e1; border: 2px solid #ffd54f; color: #5d4300; font-size: 1rem; line-height: 1.5;
+}
+.photo-ios-hint b { color: #b45309; }
+.photo-ios-hint-icon { font-size: 1.4rem; line-height: 1.2; }
 .photo-full { padding: 14px; border-radius: 12px; background: var(--green-soft); color: var(--green-dark); font-weight: 700; text-align: center; }
 .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .photo, .photo-add { position: relative; aspect-ratio: 1; border-radius: 12px; overflow: hidden; }

@@ -10,6 +10,9 @@
   const CFG = window.APP_CONFIG || {};
   const MOCK = new URLSearchParams(location.search).get('mock') === '1';
   const PHOTO_MAX = 3;
+  const IS_IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+    new URLSearchParams(location.search).get('ios') === '1';
   const DONE_PREFIX = '【記録完了】';
 
   const PHOTO_INFO = {
@@ -212,8 +215,12 @@
               h('button', { class: 'photo-btn', onclick: () => cameraInput.click() },
                 h('span', { class: 'photo-btn-icon' }, '📷'), h('span', {}, 'カメラで撮る')),
               h('button', { class: 'photo-btn sub', onclick: () => albumInput.click() },
-                h('span', { class: 'photo-btn-icon' }, '🖼️'), h('span', {}, 'アルバムから選ぶ'))
-            ]));
+                h('span', { class: 'photo-btn-icon' }, '🖼️'), h('span', {}, 'アルバムから選ぶ')),
+              // iPhone はこのあと必ず3択のメニューが出る（Appleの仕様で消せない）ので、押す場所を案内する
+              IS_IOS ? h('div', { class: 'photo-ios-hint' },
+                h('span', { class: 'photo-ios-hint-icon' }, '👆'),
+                h('span', {}, 'このあと出てくるメニューでは、いちばん上の', h('b', {}, '「写真ライブラリ」'), 'を押してください')) : null
+            ].filter(Boolean)));
           grid.replaceChildren();
           list.forEach((p, i) => {
             grid.append(h('div', { class: 'photo' },
