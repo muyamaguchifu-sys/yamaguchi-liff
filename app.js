@@ -558,7 +558,7 @@
       title: '活動内容',
       validate() {
         const r = collectActivity();
-        if (!r.details.length) return '活動内容を1つ以上チェックしてください。';
+        if (!r.details.length && !r.otherText) return '活動内容をチェックするか、具体的な作業内容を入力してください。';
         if (r.missingOther) return '「その他」を選んだときは、内容を入力してください。';
         return '';
       },
