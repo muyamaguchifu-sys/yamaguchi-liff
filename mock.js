@@ -23,12 +23,12 @@
         data: {
           nextNo: no,
           members: [
-            { row: 2, name: '山田 太郎', kana: 'やまだ', attended: false, items: '' },
-            { row: 3, name: '佐藤 花子', kana: 'さとう', attended: true, items: '草刈機' },
-            { row: 4, name: '鈴木 一郎', kana: 'すずき', attended: false, items: '' },
-            { row: 5, name: '田中 次郎', kana: 'たなか', attended: false, items: '' },
-            { row: 6, name: '伊藤 三郎', kana: 'いとう', attended: false, items: '' },
-            { row: 7, name: '中村 四郎', kana: 'なかむら', attended: false, items: '' },
+            { row: 2, name: 'Aさん', kana: 'えーさん', attended: false, items: '' },
+            { row: 3, name: 'Bさん', kana: 'びーさん', attended: true, items: '草刈機' },
+            { row: 4, name: 'Cさん', kana: 'しーさん', attended: false, items: '' },
+            { row: 5, name: 'Dさん', kana: 'でぃーさん', attended: false, items: '' },
+            { row: 6, name: 'Eさん', kana: 'いーさん', attended: false, items: '' },
+            { row: 7, name: 'Fさん', kana: 'えふさん', attended: false, items: '' },
             { row: 8, name: '団体', kana: '', attended: false, items: '' },
             { row: 9, name: '非農業者', kana: '', attended: false, items: '' }
           ],
