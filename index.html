@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta http-equiv="Cache-Control" content="no-cache">
   <title>活動の記録</title>
 </head>
@@ -15,6 +15,28 @@
 
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
+    // 画面が拡大されたり、ずれたりしないようにする（ボタンの連打・ピンチ操作で動かない）
+    (function () {
+      ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (t) {
+        document.addEventListener(t, function (e) { e.preventDefault(); }, { passive: false });
+      });
+      document.addEventListener('touchmove', function (e) {
+        if (e.touches && e.touches.length > 1) e.preventDefault();
+      }, { passive: false });
+      var lastTouchEnd = 0;
+      document.addEventListener('touchend', function (e) {
+        var now = Date.now();
+        var tag = e.target && e.target.tagName;
+        // 入力欄以外で素早く2回タップしたときの拡大を止める
+        if (now - lastTouchEnd < 350 && tag !== 'INPUT' && tag !== 'TEXTAREA') {
+          e.preventDefault();
+          var el = e.target.closest && e.target.closest('button, label, input[type=checkbox]');
+          if (el) el.click();
+        }
+        lastTouchEnd = now;
+      }, { passive: false });
+    })();
+
     // 画面のファイルは毎回最新を読み込む（スマホに古い画面が残らないように）
     (function () {
       var v = Date.now();
