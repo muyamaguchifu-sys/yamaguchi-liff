@@ -131,7 +131,11 @@
   }
 
   // ---------------- 集計 ----------------
-  const isSpecial = name => name === '団体' || name === '非農業者';
+  // 名簿で「団体」として扱う行の名前（GAS の Config.js の GROUP_LABEL。一ノ渡は「かけはし協力隊」）
+  const groupLabel = () => (S.data && S.data.groupLabel) || '団体';
+  // 団体の行が「団体名」ではなく「メンバー」を選ぶ使い方か（かけはし協力隊など）
+  const isMemberGroup = name => name === groupLabel() && groupLabel() !== '団体';
+  const isSpecial = name => name === groupLabel() || name === '非農業者';
 
   function rosterCount() {
     let n = 0;
@@ -471,7 +475,7 @@
             },
               h('span', { class: 'kana' }, special ? '' : m.kana),
               h('span', { class: 'name' }, m.name),
-              h('span', { class: 'st' }, at ? (special ? `${at.items.length}団体` : '● 参加') : '〇'),
+              h('span', { class: 'st' }, at ? (special ? `${at.items.length}${isMemberGroup(m.name) ? '名' : '団体'}` : '● 参加') : '〇'),
               at && at.items.length ? h('span', { class: 'its' }, at.items.join('、')) : null));
           });
         };
@@ -507,7 +511,7 @@
   // 名簿の人をタップしたときのシート（持ち物 or 団体名を選ぶ）
   function openMemberSheet(m, onChange) {
     const special = isSpecial(m.name);
-    const list = m.name === '団体' ? S.data.groups : m.name === '非農業者' ? S.data.others : S.data.items;
+    const list = m.name === groupLabel() ? S.data.groups : m.name === '非農業者' ? S.data.others : S.data.items;
     const current = S.a.attendance[m.row];
 
     // 持ち物の選択肢がない普通の人は、タップだけで参加/取消を切り替える
@@ -545,7 +549,8 @@
     root.replaceChildren(h('div', { class: 'overlay', onclick: e => { if (e.target === e.currentTarget) close(); } },
       h('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true' },
         h('h3', {}, m.name),
-        h('p', { class: 'hint' }, special ? '参加した団体・組織を選んでください（複数可）' : '持ち物があれば選んでください（なくても大丈夫です）'),
+        h('p', { class: 'hint' }, isMemberGroup(m.name) ? '参加したメンバーを選んでください（複数可）'
+          : special ? '参加した団体・組織を選んでください（複数可）' : '持ち物があれば選んでください（なくても大丈夫です）'),
         listEl,
         h('div', { class: 'sheet-foot' },
           h('button', { class: 'btn btn-ghost', onclick: absent }, current ? '不参加にする' : 'やめる'),
@@ -849,6 +854,9 @@
 
       const res = await api('init');
       S.data = res.data;
+      // 団体のタブの名前を、その集落の設定（かけはし協力隊など）に合わせる
+      const groupTab = KANA_TABS.find(t => t.group && t.label !== '非農業者');
+      if (groupTab) groupTab.label = groupLabel();
       // すでに出席簿アプリで登録されていた人を最初から選んでおく
       S.data.members.forEach(m => {
         if (!m.attended) return;

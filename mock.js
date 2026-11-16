@@ -13,6 +13,8 @@
   };
 
   const wait = ms => new Promise(r => setTimeout(r, ms));
+  // &group=かけはし協力隊 のように付けると、一ノ渡のように団体の行の名前を変えて確認できる
+  const GROUP = new URLSearchParams(location.search).get('group') || '団体';
   let no = 42;
 
   window.MOCK_API = async (action, body) => {
@@ -22,6 +24,7 @@
         ok: true,
         data: {
           nextNo: no,
+          groupLabel: GROUP,
           members: [
             { row: 2, name: 'Aさん', kana: 'えーさん', attended: false, items: '' },
             { row: 3, name: 'Bさん', kana: 'びーさん', attended: true, items: '草刈機' },
@@ -29,7 +32,7 @@
             { row: 5, name: 'Dさん', kana: 'でぃーさん', attended: false, items: '' },
             { row: 6, name: 'Eさん', kana: 'いーさん', attended: false, items: '' },
             { row: 7, name: 'Fさん', kana: 'えふさん', attended: false, items: '' },
-            { row: 8, name: '団体', kana: '', attended: false, items: '' },
+            { row: 8, name: GROUP, kana: '', attended: false, items: '' },
             { row: 9, name: '非農業者', kana: '', attended: false, items: '' }
           ],
           items: ['草刈機', 'スコップ', '軽トラ', 'チェーンソー'],
