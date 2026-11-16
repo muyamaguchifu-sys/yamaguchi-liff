@@ -2,7 +2,9 @@
 // 中山間 活動記録 LIFFモーダル
 //   ?mode=report   … 活動報告
 //   ?mode=purchase … 備品購入
-//   ?mock=1        … LINEなしで画面だけ確認する（mock.js）
+//   ?mode=photo    … 写真を撮影する（ドライブに保存するだけ）
+//   ?v=nozuki など … どの集落のGASに記録するか（config.js。なしはテスト用）
+//   ?mock=1       … LINEなしで画面だけ確認する（mock.js）
 // ==========================================
 (() => {
   'use strict';
@@ -837,6 +839,63 @@
         h('button', { class: 'mode-btn sub', onclick: () => startMode('purchase') }, '🧾 備品購入'))));
   }
 
+  // ---------------- 写真を撮影する（リッチメニューから ?mode=photo） ----------------
+  //   撮った写真はドライブの「単発写真」に保存するだけ（今までのボットと同じ。活動記録には入らない）
+  function renderPhotoOnly() {
+    S.mode = null;
+    const shots = [];   // { thumb, status: 'uploading' | 'done' | 'error' }
+    let busy = 0;
+    const onPick = e => { addShots([...e.target.files]); e.target.value = ''; };
+    const cameraInput = h('input', { type: 'file', accept: 'image/*', capture: 'environment', hidden: true, onchange: onPick });
+    const albumInput = h('input', { type: 'file', accept: 'image/*', multiple: true, hidden: true, onchange: onPick });
+    const grid = h('div', { class: 'photo-grid' });
+    const status = h('p', { class: 'hint', style: 'text-align:center;font-weight:bold' });
+
+    const draw = () => {
+      grid.replaceChildren(...shots.map(p => h('div', { class: 'photo' },
+        h('img', { src: p.thumb, alt: '' }),
+        p.status === 'uploading' ? h('div', { class: 'photo-overlay' }, h('div', { class: 'spinner' })) : null,
+        p.status === 'error' ? h('div', { class: 'photo-overlay err' }, '保存失敗') : null)));
+      grid.style.display = shots.length ? '' : 'none';
+      const done = shots.filter(p => p.status === 'done').length;
+      status.textContent = busy ? `保存しています…（${done}枚 保存ずみ）` : done ? `📸 ${done}枚 ドライブに保存しました` : '';
+    };
+    const addShots = files => {
+      files.forEach(file => {
+        const item = { thumb: URL.createObjectURL(file), status: 'uploading' };
+        shots.push(item);
+        busy++;
+        resizeImage(file)
+          .then(dataUrl => api('uploadPhoto', { key: '単発写真', dataUrl }))
+          .then(() => { item.status = 'done'; })
+          .catch(err => { item.status = 'error'; toast(err.message); })
+          .finally(() => { busy--; draw(); });
+      });
+      draw();
+    };
+    const close = () => {
+      if (busy) { toast('写真を保存中です。少しお待ちください。'); return; }
+      if (!MOCK && liff.isInClient()) liff.closeWindow();
+      else toast('この画面は閉じて大丈夫です');
+    };
+
+    draw();
+    app.replaceChildren(
+      h('header', { class: 'top' }, h('h1', { class: 'q' }, '写真を撮影する')),
+      h('main', { class: 'body' },
+        h('p', { class: 'hint' }, '撮った写真はドライブに保存されます。（活動の記録には入りません。記録するときは「活動を記録する」から写真を選んでください）'),
+        h('div', { class: 'photo-buttons' },
+          h('button', { class: 'photo-btn', onclick: () => cameraInput.click() },
+            h('span', { class: 'photo-btn-icon' }, '📷'), h('span', {}, 'カメラで撮る')),
+          h('button', { class: 'photo-btn sub', onclick: () => albumInput.click() },
+            h('span', { class: 'photo-btn-icon' }, '🖼️'), h('span', {}, 'アルバムから選ぶ')),
+          IS_IOS ? h('div', { class: 'photo-ios-hint' },
+            h('span', { class: 'photo-ios-hint-icon' }, '👆'),
+            h('span', {}, 'アルバムのときは、このあと出てくるメニューのいちばん上の', h('b', {}, '「写真ライブラリ」'), 'を押してください')) : null),
+        status, grid, cameraInput, albumInput),
+      h('footer', { class: 'foot' }, h('button', { class: 'btn btn-next', onclick: close }, '閉じる')));
+  }
+
   function renderError(msg) {
     app.replaceChildren(h('div', { class: 'center-screen' },
       h('h2', {}, '開けませんでした'),
@@ -851,6 +910,9 @@
       }
       await liff.init({ liffId: CFG.LIFF_ID });
       if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return; }
+
+      // 写真を撮るだけのときは、名簿などを読み込まずにすぐ開く
+      if (new URLSearchParams(location.search).get('mode') === 'photo') { renderPhotoOnly(); return; }
 
       const res = await api('init');
       S.data = res.data;
